@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tracer App – Daily Life Tracker</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --primary: #2563EB;
+    --primary-light: #EFF6FF;
+    --success: #16A34A;
+    --success-light: #F0FDF4;
+    --warn: #D97706;
+    --warn-light: #FFFBEB;
+    --danger: #DC2626;
+    --danger-light: #FEF2F2;
+    --purple: #7C3AED;
+    --purple-light: #F5F3FF;
+    --bg: #F1F5F9;
+    --card: #FFFFFF;
+    --text: #1E293B;
+    --muted: #64748B;
+    --border: #E2E8F0;
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(37,99,235,0.3);
+  }
+  .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { opacity: 0.7; font-weight: 400; font-size: 13px; display: block; }
+  .date-badge { background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+  /* TABS */
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid var(--border); overflow-x: auto; }
+  .tab {
+    flex: 1; min-width: 80px; padding: 12px 8px; text-align: center;
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all 0.2s; white-space: nowrap;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+
+  /* PAGES */
+  .page { display: none; padding: 16px; max-width: 480px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+  .card-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+
+  /* FORM ELEMENTS */
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--text); }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-family: inherit;
+    background: #fff; color: var(--text); outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .form-group { margin-bottom: 12px; }
+  textarea { resize: vertical; min-height: 70px; }
+
+  /* BUTTONS */
+  .btn {
+    padding: 11px 20px; border: none; border-radius: 9px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all 0.2s; width: 100%;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: #1D4ED8; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+
+  /* MOOD SELECTOR */
+  .mood-grid { display: flex; gap: 8px; justify-content: space-between; }
+  .mood-btn {
+    flex: 1; padding: 10px 4px; border: 2px solid var(--border);
+    border-radius: 10px; background: #fff; cursor: pointer;
+    text-align: center; font-size: 22px; transition: all 0.2s;
+  }
+  .mood-btn.selected { border-color: var(--primary); background: var(--primary-light); transform: scale(1.08); }
+  .mood-label { font-size: 10px; font-weight: 600; color: var(--muted); display: block; margin-top: 2px; }
+
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat-card { background: var(--card); border-radius: 12px; padding: 14px 10px; text-align: center; border: 1px solid var(--border); }
+  .stat-value { font-size: 22px; font-weight: 800; }
+  .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+  /* LOG LIST */
+  .log-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px; background: var(--card); border-radius: 10px;
+    margin-bottom: 8px; border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .log-icon { font-size: 22px; flex-shrink: 0; }
+  .log-info { flex: 1; }
+  .log-title { font-size: 13.5px; font-weight: 700; }
+  .log-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .log-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  .badge-green { background: var(--success-light); color: var(--success); }
+  .badge-red { background: var(--danger-light); color: var(--danger); }
+  .badge-blue { background: var(--primary-light); color: var(--primary); }
+  .badge-purple { background: var(--purple-light); color: var(--purple); }
+
+  /* MONEY BAR */
+  .money-bar { height: 10px; border-radius: 20px; background: var(--border); margin: 8px 0; overflow: hidden; }
+  .money-fill { height: 100%; border-radius: 20px; transition: width 1s ease; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 10px; }
+  .empty-text { font-size: 14px; }
+
+  /* SUMMARY NUMBERS */
+  .summary-big { font-size: 28px; font-weight: 800; }
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #1E293B; color: #fff; padding: 10px 20px;
+    border-radius: 20px; font-size: 13px; font-weight: 600;
+    opacity: 0; transition: opacity 0.3s; z-index: 999; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  .section-gap { height: 80px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📍 Tracer App <span>Daily Life Tracker</span></div>
+  <div class="date-badge" id="todayDate"></div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('home')"><span class="tab-icon">🏠</span>Home</div>
+  <div class="tab" onclick="showTab('travel')"><span class="tab-icon">🚗</span>Travel</div>
+  <div class="tab" onclick="showTab('mood')"><span class="tab-icon">😊</span>Mood</div>
+  <div class="tab" onclick="showTab('money')"><span class="tab-icon">💰</span>Money</div>
+  <div class="tab" onclick="showTab('history')"><span class="tab-icon">📋</span>History</div>
+</div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <br/>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-travel" style="color:#2563EB;">0</div>
+      <div class="stat-label">Trips Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-mood" style="color:#7C3AED;">–</div>
+      <div class="stat-label">Today's Mood</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-balance" style="color:#16A34A;">₹0</div>
+      <div class="stat-label">Balance</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💸 Money Overview</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <span style="font-size:13px;color:#16A34A;font-weight:700;">↑ Income: <span id="home-income">₹0</span></span>
+      <span style="font-size:13px;color:#DC2626;font-weight:700;">↓ Expense: <span id="home-expense">₹0</span></span>
+    </div>
+    <div class="money-bar">
+      <div class="money-fill" id="money-bar-fill" style="width:0%;background:linear-gradient(90deg,#16A34A,#2563EB);"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📅 Recent Activity</div>
+    <div id="recent-list"><div class="empty"><div class="empty-icon">✨</div><div class="empty-text">No activity yet — start tracking!</div></div></div>
+  </div>
+</div>
+
+<!-- TRAVEL -->
+<div class="page" id="page-travel">
+  <br/>
+  <div class="card">
+    <div class="card-title">🚗 Log a Trip</div>
+    <div class="form-group">
+      <label>From</label>
+      <input type="text" id="travel-from" placeholder="Starting point..."/>
+    </div>
+    <div class="form-group">
+      <label>To</label>
+      <input type="text" id="travel-to" placeholder="Destination..."/>
+    </div>
+    <div class="form-group">
+      <label>Distance (km)</label>
+      <input type="number" id="travel-km" placeholder="e.g. 12"/>
+    </div>
+    <div class="form-group">
+      <label>Mode of Transport</label>
+      <select id="travel-mode">
+        <option>🏍️ Bike</option>
+        <option>🚌 Bus</option>
+        <option>🚗 Car</option>
+        <option>🚶 Walk</option>
+        <option>🚂 Train</option>
+        <option>🛺 Auto</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Note (optional)</label>
+      <textarea id="travel-note" placeholder="Any notes..."></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="saveTravel()">✅ Save Trip</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📍 Today's Trips</div>
+    <div id="travel-list"><div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">No trips logged yet!</div></div></div>
+  </div>
+</div>
+
+<!-- MOOD -->
+<div class="page" id="page-mood">
+  <br/>
+  <div class="card">
+    <div class="card-title">😊 How are you feeling?</div>
+    <div class="mood-grid">
+      <div class="mood-btn" onclick="selectMood('😄','Amazing')" id="mood-😄">😄<span class="mood-label">Amazing</span></div>
+      <div class="mood-btn" onclick="selectMood('😊','Happy')" id="mood-😊">😊<span class="mood-label">Happy</span></div>
+      <div class="mood-btn" onclick="selectMood('😐','Okay')" id="mood-😐">😐<span class="mood-label">Okay</span></div>
+      <div class="mood-btn" onclick="selectMood('😔','Sad')" id="mood-😔">😔<span class="mood-label">Sad</span></div>
+      <div class="mood-btn" onclick="selectMood('😤','Angry')" id="mood-😤">😤<span class="mood-label">Angry</span></div>
+    </div>
+    <div style="margin-top:14px;">
+      <label>Why do you feel this way?</label>
+      <textarea id="mood-note" placeholder="Write your thoughts..."></textarea>
+    </div>
+    <button class="btn btn-primary" style="margin-top:12px;" onclick="saveMood()">✅ Save Mood</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Mood History</div>
+    <div id="mood-list"><div class="empty"><div class="empty-icon">💭</div><div class="empty-text">No moods logged yet!</div></div></div>
+  </div>
+</div>
+
+<!-- MONEY -->
+<div class="page" id="page-money">
+  <br/>
+  <div class="card">
+    <div class="card-title">💰 Add Transaction</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn" id="type-income" onclick="setType('income')" style="background:#F0FDF4;color:#16A34A;border:2px solid #16A34A;">↑ Income</button>
+      <button class="btn" id="type-expense" onclick="setType('expense')" style="background:#fff;color:#64748B;border:2px solid #E2E8F0;">↓ Expense</button>
+    </div>
+    <div class="form-group">
+      <label>Amount (₹)</label>
+      <input type="number" id="money-amount" placeholder="0"/>
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <select id="money-category">
+        <optgroup label="🍽️ Food & Drinks">
+          <option>🍚 Meals / Lunch / Dinner</option>
+          <option>🍳 Breakfast</option>
+          <option>☕ Tea / Coffee / Snacks</option>
+          <option>🧃 Cold Drinks / Juice</option>
+          <option>🍕 Swiggy / Zomato Order</option>
+          <option>🛒 Groceries / Vegetables</option>
+          <option>🍫 Chocolates / Bakery</option>
+        </optgroup>
+        <optgroup label="💸 Daily Expenses">
+          <option>🚗 Transport / Fuel</option>
+          <option>🛺 Auto / Cab / Bus Fare</option>
+          <option>📱 Mobile Recharge</option>
+          <option>💡 Electricity / Water Bill</option>
+          <option>🌐 Internet / WiFi</option>
+          <option>🛍️ Shopping / Clothes</option>
+          <option>💊 Medicine / Health</option>
+          <option>💈 Haircut / Salon</option>
+          <option>🧼 Personal Care</option>
+        </optgroup>
+        <optgroup label="📚 Education">
+          <option>📚 Books / Notes</option>
+          <option>🖨️ Xerox / Printing</option>
+          <option>💻 Online Course / Exam Fee</option>
+          <option>🏫 College Fee</option>
+        </optgroup>
+        <optgroup label="🎮 Entertainment">
+          <option>🎮 Gaming / Free Fire Recharge</option>
+          <option>🎬 Movies / OTT</option>
+          <option>🎉 Outing / Hangout</option>
+        </optgroup>
+        <optgroup label="👨‍👩‍👧 Family & Others">
+          <option>👨‍👩‍👧 Family Expense</option>
+          <option>🎁 Gift / Festival</option>
+          <option>🙏 Temple / Donation</option>
+          <option>📦 Other</option>
+        </optgroup>
+        <optgroup label="💰 Income">
+          <option>💼 Salary / Stipend</option>
+          <option>👨‍👩‍👧 Pocket Money from Family</option>
+          <option>🏆 Prize / Reward</option>
+          <option>💻 Freelance Work</option>
+          <option>📈 Other Income</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Note</label>
+      <input type="text" id="money-note" placeholder="e.g. Lunch at college..."/>
+    </div>
+    <button class="btn btn-primary" onclick="saveMoney()">✅ Save Transaction</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="total-income" style="color:#16A34A;">₹0</div>
+      <div class="stat-label">Total Income</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="total-expense" style="color:#DC2626;">₹0</div>
+      <div class="stat-label">Total Expense</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="total-balance" style="color:#2563EB;">₹0</div>
+      <div class="stat-label">Balance</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Transactions</div>
+    <div id="money-list"><div class="empty"><div class="empty-icon">💸</div><div class="empty-text">No transactions yet!</div></div></div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="page" id="page-history">
+  <br/>
+  <div class="card">
+    <div class="card-title">📊 All-Time Summary</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:13px;color:var(--muted);">Total Trips</span>
+      <span style="font-weight:800;font-size:16px;" id="all-trips">0</span>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:13px;color:var(--muted);">Total Distance</span>
+      <span style="font-weight:800;font-size:16px;" id="all-km">0 km</span>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:13px;color:#16A34A;">Total Earned</span>
+      <span style="font-weight:800;font-size:16px;color:#16A34A;" id="all-income">₹0</span>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:#DC2626;">Total Spent</span>
+      <span style="font-weight:800;font-size:16px;color:#DC2626;" id="all-expense">₹0</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📅 Full Log</div>
+    <div id="full-history"><div class="empty"><div class="empty-icon">📂</div><div class="empty-text">Nothing logged yet!</div></div></div>
+  </div>
+
+  <div style="margin-top:8px;">
+    <button class="btn btn-danger" onclick="clearAll()">🗑️ Clear All Data</button>
+  </div>
+</div>
+
+<div class="section-gap"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+  // STATE
+  let state = JSON.parse(localStorage.getItem('tracerApp') || '{"travel":[],"mood":[],"money":[]}');
+  let selectedMood = null;
+  let moneyType = 'income';
+
+  // DATE
+  const now = new Date();
+  document.getElementById('todayDate').textContent = now.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+
+  function save() { localStorage.setItem('tracerApp', JSON.stringify(state)); }
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function timeNow() { return new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }); }
+  function dateNow() { return new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short' }); }
+
+  // TABS
+  function showTab(tab) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+    renderAll();
+  }
+
+  // MOOD SELECT
+  function selectMood(emoji, label) {
+    selectedMood = { emoji, label };
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('mood-' + emoji).classList.add('selected');
+  }
+
+  // MONEY TYPE
+  function setType(type) {
+    moneyType = type;
+    if (type === 'income') {
+      document.getElementById('type-income').style.cssText = 'background:#F0FDF4;color:#16A34A;border:2px solid #16A34A;';
+      document.getElementById('type-expense').style.cssText = 'background:#fff;color:#64748B;border:2px solid #E2E8F0;';
+    } else {
+      document.getElementById('type-expense').style.cssText = 'background:#FEF2F2;color:#DC2626;border:2px solid #DC2626;';
+      document.getElementById('type-income').style.cssText = 'background:#fff;color:#64748B;border:2px solid #E2E8F0;';
+    }
+  }
+
+  // SAVE TRAVEL
+  function saveTravel() {
+    const from = document.getElementById('travel-from').value.trim();
+    const to = document.getElementById('travel-to').value.trim();
+    const km = document.getElementById('travel-km').value;
+    const mode = document.getElementById('travel-mode').value;
+    const note = document.getElementById('travel-note').value.trim();
+    if (!from || !to) { toast('⚠️ From and To cheppu bro!'); return; }
+    state.travel.push({ from, to, km: km || 0, mode, note, time: timeNow(), date: dateNow() });
+    save(); renderAll(); toast('✅ Trip saved!');
+    document.getElementById('travel-from').value = '';
+    document.getElementById('travel-to').value = '';
+    document.getElementById('travel-km').value = '';
+    document.getElementById('travel-note').value = '';
+  }
+
+  // SAVE MOOD
+  function saveMood() {
+    if (!selectedMood) { toast('⚠️ Mood select cheyyi!'); return; }
+    const note = document.getElementById('mood-note').value.trim();
+    state.mood.push({ ...selectedMood, note, time: timeNow(), date: dateNow() });
+    save(); renderAll(); toast('✅ Mood saved!');
+    document.getElementById('mood-note').value = '';
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    selectedMood = null;
+  }
+
+  // SAVE MONEY
+  function saveMoney() {
+    const amount = parseFloat(document.getElementById('money-amount').value);
+    if (!amount || amount <= 0) { toast('⚠️ Amount enter cheyyi!'); return; }
+    const category = document.getElementById('money-category').value;
+    const note = document.getElementById('money-note').value.trim();
+    state.money.push({ type: moneyType, amount, category, note, time: timeNow(), date: dateNow() });
+    save(); renderAll(); toast('✅ Transaction saved!');
+    document.getElementById('money-amount').value = '';
+    document.getElementById('money-note').value = '';
+  }
+
+  // CLEAR ALL
+  function clearAll() {
+    if (confirm('All data delete cheyyanam?')) {
+      state = { travel: [], mood: [], money: [] };
+      save(); renderAll(); toast('🗑️ All data cleared!');
+    }
+  }
+
+  // RENDER
+  function renderAll() {
+    renderHome(); renderTravelList(); renderMoodList(); renderMoneyList(); renderHistory();
+  }
+
+  function renderHome() {
+    const todayTrips = state.travel.filter(t => t.date === dateNow()).length;
+    const latestMood = state.mood.length ? state.mood[state.mood.length - 1].emoji : '–';
+    const income = state.money.filter(m => m.type === 'income').reduce((a, m) => a + m.amount, 0);
+    const expense = state.money.filter(m => m.type === 'expense').reduce((a, m) => a + m.amount, 0);
+    const balance = income - expense;
+
+    document.getElementById('stat-travel').textContent = todayTrips;
+    document.getElementById('stat-mood').textContent = latestMood;
+    document.getElementById('stat-balance').textContent = '₹' + balance;
+    document.getElementById('home-income').textContent = '₹' + income;
+    document.getElementById('home-expense').textContent = '₹' + expense;
+
+    const pct = income > 0 ? Math.min(100, (income / (income + expense)) * 100) : 0;
+    document.getElementById('money-bar-fill').style.width = pct + '%';
+
+    const recent = [...state.travel.slice(-2).map(t => ({ icon: '🚗', title: t.from + ' → ' + t.to, sub: t.mode + ' · ' + t.date, badge: t.km + ' km', badgeClass: 'badge-blue' })),
+      ...state.mood.slice(-1).map(m => ({ icon: m.emoji, title: 'Mood: ' + m.label, sub: m.date + ' ' + m.time, badge: m.label, badgeClass: 'badge-purple' })),
+      ...state.money.slice(-2).map(m => ({ icon: m.type === 'income' ? '💚' : '🔴', title: m.category, sub: m.note || m.date, badge: (m.type === 'income' ? '+' : '-') + '₹' + m.amount, badgeClass: m.type === 'income' ? 'badge-green' : 'badge-red' }))
+    ];
+
+    const el = document.getElementById('recent-list');
+    if (!recent.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">✨</div><div class="empty-text">No activity yet!</div></div>'; return; }
+    el.innerHTML = recent.slice(-4).reverse().map(r => `
+      <div class="log-item">
+        <div class="log-icon">${r.icon}</div>
+        <div class="log-info">
+          <div class="log-title">${r.title}</div>
+          <div class="log-sub">${r.sub}</div>
+        </div>
+        <span class="log-badge ${r.badgeClass}">${r.badge}</span>
+      </div>`).join('');
+  }
+
+  function renderTravelList() {
+    const el = document.getElementById('travel-list');
+    const today = state.travel.filter(t => t.date === dateNow());
+    if (!today.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🗺️</div><div class="empty-text">No trips today!</div></div>'; return; }
+    el.innerHTML = today.reverse().map(t => `
+      <div class="log-item">
+        <div class="log-icon">🚗</div>
+        <div class="log-info">
+          <div class="log-title">${t.from} → ${t.to}</div>
+          <div class="log-sub">${t.mode} · ${t.km} km · ${t.time}${t.note ? ' · ' + t.note : ''}</div>
+        </div>
+        <span class="log-badge badge-blue">${t.km} km</span>
+      </div>`).join('');
+  }
+
+  function renderMoodList() {
+    const el = document.getElementById('mood-list');
+    if (!state.mood.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">💭</div><div class="empty-text">No moods logged!</div></div>'; return; }
+    el.innerHTML = [...state.mood].reverse().slice(0, 7).map(m => `
+      <div class="log-item">
+        <div class="log-icon">${m.emoji}</div>
+        <div class="log-info">
+          <div class="log-title">${m.label}</div>
+          <div class="log-sub">${m.date} ${m.time}${m.note ? ' · ' + m.note : ''}</div>
+        </div>
+        <span class="log-badge badge-purple">${m.emoji}</span>
+      </div>`).join('');
+  }
+
+  function renderMoneyList() {
+    const income = state.money.filter(m => m.type === 'income').reduce((a, m) => a + m.amount, 0);
+    const expense = state.money.filter(m => m.type === 'expense').reduce((a, m) => a + m.amount, 0);
+    document.getElementById('total-income').textContent = '₹' + income;
+    document.getElementById('total-expense').textContent = '₹' + expense;
+    document.getElementById('total-balance').textContent = '₹' + (income - expense);
+
+    const el = document.getElementById('money-list');
+    if (!state.money.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">No transactions!</div></div>'; return; }
+    el.innerHTML = [...state.money].reverse().map(m => `
+      <div class="log-item">
+        <div class="log-icon">${m.type === 'income' ? '💚' : '🔴'}</div>
+        <div class="log-info">
+          <div class="log-title">${m.category}</div>
+          <div class="log-sub">${m.date} · ${m.time}${m.note ? ' · ' + m.note : ''}</div>
+        </div>
+        <span class="log-badge ${m.type === 'income' ? 'badge-green' : 'badge-red'}">${m.type === 'income' ? '+' : '-'}₹${m.amount}</span>
+      </div>`).join('');
+  }
+
+  function renderHistory() {
+    const totalKm = state.travel.reduce((a, t) => a + parseFloat(t.km || 0), 0);
+    const income = state.money.filter(m => m.type === 'income').reduce((a, m) => a + m.amount, 0);
+    const expense = state.money.filter(m => m.type === 'expense').reduce((a, m) => a + m.amount, 0);
+    document.getElementById('all-trips').textContent = state.travel.length;
+    document.getElementById('all-km').textContent = totalKm + ' km';
+    document.getElementById('all-income').textContent = '₹' + income;
+    document.getElementById('all-expense').textContent = '₹' + expense;
+
+    const all = [
+      ...state.travel.map(t => ({ icon: '🚗', title: t.from + ' → ' + t.to, sub: t.date + ' ' + t.time + ' · ' + t.mode, badge: t.km + ' km', badgeClass: 'badge-blue' })),
+      ...state.mood.map(m => ({ icon: m.emoji, title: 'Mood: ' + m.label, sub: m.date + ' ' + m.time, badge: m.emoji, badgeClass: 'badge-purple' })),
+      ...state.money.map(m => ({ icon: m.type === 'income' ? '💚' : '🔴', title: m.category, sub: m.date + ' ' + m.time + (m.note ? ' · ' + m.note : ''), badge: (m.type === 'income' ? '+' : '-') + '₹' + m.amount, badgeClass: m.type === 'income' ? 'badge-green' : 'badge-red' }))
+    ];
+    const el = document.getElementById('full-history');
+    if (!all.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><div class="empty-text">Nothing logged yet!</div></div>'; return; }
+    el.innerHTML = all.reverse().map(r => `
+      <div class="log-item">
+        <div class="log-icon">${r.icon}</div>
+        <div class="log-info">
+          <div class="log-title">${r.title}</div>
+          <div class="log-sub">${r.sub}</div>
+        </div>
+        <span class="log-badge ${r.badgeClass}">${r.badge}</span>
+      </div>`).join('');
+  }
+
+  renderAll();
+</script>
+</body>
+</html>
